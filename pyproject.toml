@@ -8,6 +8,7 @@ dependencies = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.30",
   "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.2",
   "alembic>=1.13",
   "pydantic>=2.7",
   "pydantic-settings>=2.3",
@@ -41,6 +42,7 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+lint.ignore = ["B008", "DTZ003", "UP037"]
 
 [tool.alembic]
 script_location = "migrations"
