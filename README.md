@@ -14,7 +14,7 @@ Client
   -> FastAPI endpoint (HTTP details and status codes)
   -> service (business rules such as lifecycle transitions)
   -> repository (SQLAlchemy queries)
-  -> PostgreSQL or SQLite
+  -> PostgreSQL
 ```
 
 The response travels back through the same layers. Pydantic schemas decide
@@ -36,7 +36,7 @@ later phases and are not used yet.
 - Alembic is a migration tool. A migration is a versioned description of a
   database change, so a new application version does not erase existing data.
 - Unit tests check one piece of logic. Integration tests exercise multiple
-  layers together. The integration tests here use a temporary SQLite database,
+  layers together. The integration tests use a dedicated PostgreSQL database,
   never your development database.
 
 ## Setup
@@ -64,6 +64,7 @@ Inside `psql`, create the development user and database:
 ```sql
 CREATE USER interview_coach WITH PASSWORD 'change-me';
 CREATE DATABASE interview_coach OWNER interview_coach;
+CREATE DATABASE interview_coach_test OWNER interview_coach;
 \q
 ```
 
@@ -75,9 +76,8 @@ DATABASE_URL=postgresql+psycopg://interview_coach:change-me@localhost:5432/inter
 
 The URL says: use PostgreSQL through the `psycopg` driver, connect as
 `interview_coach`, use its password, connect to the local server on port 5432,
-and open the `interview_coach` database. For a quick local experiment without
-PostgreSQL, leave `DATABASE_URL` unset; the application defaults to
-`sqlite:///./interview_coach.db`.
+and open the `interview_coach` database. PostgreSQL is required; the
+application rejects non-PostgreSQL database URLs.
 
 ## Migrations
 

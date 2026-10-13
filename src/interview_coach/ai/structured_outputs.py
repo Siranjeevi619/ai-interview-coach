@@ -1,18 +1,15 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-class Question(BaseModel):
-    question: str
-    topic:str
-    difficulty: Literal[
-        "beginner",
-        "intermediate",
-        "expert",
-
-    ]
+class GeneratedQuestion(BaseModel):
+    question_text: str = Field(
+        description="The interview question shown to the candidate."
+    )
+    topic: str = Field(description="The technical topic being tested.")
+    difficulty: Literal["beginner", "intermediate", "advanced"]
 
 
-class QuestionSet(BaseModel):
-    question_list : list[Question]
+class GeneratedQuestionSet(BaseModel):
+    questions: list[GeneratedQuestion]

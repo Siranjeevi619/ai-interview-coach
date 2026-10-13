@@ -2,7 +2,7 @@
 """Check all 15 API endpoints with a full lifecycle workflow.
 
 Usage:
-  python scripts/check_endpoints.py           # isolated TestClient + temp SQLite
+  python scripts/check_endpoints.py           # isolated TestClient + PostgreSQL
   python scripts/check_endpoints.py --url http://127.0.0.1:8000  # live server
 """
 from __future__ import annotations
@@ -22,18 +22,17 @@ def build_client(url: str | None):
         import httpx
 
         return httpx.Client(base_url=url.rstrip("/"), timeout=10.0), False
-    import tempfile
     from fastapi.testclient import TestClient
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
+    from interview_coach.core.config import settings
     from interview_coach.database.base import Base
     from interview_coach.database.session import get_db
     from interview_coach.main import app
 
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
-    engine = create_engine(f"sqlite:///{tmp.name}")
+    database_url = f"{settings.database_url.rsplit('/', 1)[0]}/interview_coach_test"
+    engine = create_engine(database_url)
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, expire_on_commit=False)
 

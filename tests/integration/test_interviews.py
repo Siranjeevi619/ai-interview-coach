@@ -1,16 +1,18 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
+from interview_coach.core.config import settings
 from interview_coach.database.base import Base
 from interview_coach.database.session import get_db
 from interview_coach.main import app
 
 
 @pytest.fixture
-def client(tmp_path):
-    engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
+def client():
+    database_url = f"{settings.database_url.rsplit('/', 1)[0]}/interview_coach_test"
+    engine = create_engine(database_url)
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
 
@@ -25,6 +27,10 @@ def client(tmp_path):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+    with engine.begin() as connection:
+        for table in reversed(Base.metadata.sorted_tables):
+            connection.execute(text(f'DROP TABLE IF EXISTS "{table.name}" CASCADE'))
+    engine.dispose()
 
 
 def test_interview_workflow(client):

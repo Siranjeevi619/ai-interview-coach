@@ -8,13 +8,13 @@ from interview_coach.models.interview import Difficulty, InterviewStatus
 class InterviewCreate(BaseModel):
     role: str = Field(min_length=1, max_length=120)
     difficulty: Difficulty
-    total_questions: int = Field(ge=1, le=100)
+    total_questions: int = Field(ge=1, le=20)
 
 
 class InterviewUpdate(BaseModel):
     role: str | None = Field(default=None, min_length=1, max_length=120)
     difficulty: Difficulty | None = None
-    total_questions: int | None = Field(default=None, ge=1, le=100)
+    total_questions: int | None = Field(default=None, ge=1, le=20)
 
 
 class InterviewResponse(BaseModel):

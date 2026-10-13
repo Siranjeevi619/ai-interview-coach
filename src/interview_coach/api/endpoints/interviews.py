@@ -74,6 +74,16 @@ router.add_api_route(
 )
 
 
+@router.post(
+    "/{interview_id}/generate-questions",
+    response_model=list[QuestionResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def generate_interview_questions(interview_id: str, db: Session = Depends(get_db)):
+    """Generate questions for an interview with Groq and persist them."""
+    return InterviewService(db).generate_questions(interview_id)
+
+
 @router.post("/{interview_id}/questions", response_model=QuestionResponse, status_code=201)
 def add_question(interview_id: str, data: QuestionCreate, db: Session = Depends(get_db)):
     return AnswerService(db).add_question(interview_id, data)

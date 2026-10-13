@@ -4,7 +4,9 @@ from typing import ClassVar
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from interview_coach.models.answer import Question
 from interview_coach.models.interview import Interview, InterviewStatus
+from interview_coach.repositories.answer_repository import AnswerRepository
 from interview_coach.repositories.interview_repository import InterviewRepository
 from interview_coach.schemas.interview import InterviewCreate, InterviewUpdate
 
@@ -26,6 +28,61 @@ class InterviewService:
 
     def create(self, data: InterviewCreate) -> Interview:
         return self.repository.create(Interview(**data.model_dump()))
+
+    def generate_questions(self, interview_id: str) -> list[Question]:
+        """Generate interview questions with Groq and persist them."""
+        interview = self.get_or_404(interview_id)
+        if interview.status in {InterviewStatus.completed, InterviewStatus.cancelled}:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Questions cannot be generated for a finished interview",
+            )
+        answer_repository = AnswerRepository(self.repository.db)
+        existing = answer_repository.list_questions(interview_id)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Questions have already been generated for this interview",
+            )
+        if not 1 <= interview.total_questions <= 20:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="AI generation supports between 1 and 20 questions",
+            )
+        try:
+            from interview_coach.ai.question_generator import generate_questions
+
+            generated = generate_questions(
+                role=interview.role,
+                difficulty=interview.difficulty.value,
+                total_questions=interview.total_questions,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=str(exc),
+            ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Question generation failed: {exc}",
+            ) from exc
+
+        questions = [
+            Question(
+                interview_id=interview_id,
+                text=item.question_text,
+                sequence_number=index,
+                topic=item.topic,
+            )
+            for index, item in enumerate(generated.questions, start=1)
+        ]
+        for question in questions:
+            self.repository.db.add(question)
+        self.repository.db.commit()
+        for question in questions:
+            self.repository.db.refresh(question)
+        return questions
 
     def get_or_404(self, interview_id: str) -> Interview:
         interview = self.repository.get(interview_id)
