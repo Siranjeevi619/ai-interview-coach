@@ -61,7 +61,7 @@ def validate_questions(
             )
 
 
-def generate_questions(
+async def generate_questions(
     role: str,
     difficulty: str,
     total_questions: int,
@@ -75,8 +75,15 @@ def generate_questions(
     if not 1 <= total_questions <= 20:
         raise ValueError("Question count must be between 1 and 20.")
 
+    logger.info(
+        "Starting question generation: role=%s, difficulty=%s, count=%d",
+        role,
+        difficulty,
+        total_questions,
+    )
+
     try:
-        result = question_chain.invoke(
+        result =  await question_chain.ainvoke(
             {
                 "role": role,
                 "difficulty": difficulty,
@@ -96,6 +103,11 @@ def generate_questions(
         role=role,
         difficulty=difficulty,
         total_questions=total_questions,
+    )
+
+    logger.info(
+        "Question generation succeeded: count=%d",
+        len(result.questions),
     )
 
     return result
